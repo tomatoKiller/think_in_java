@@ -1,5 +1,7 @@
 package concurrency;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * Created by IORI on 2014/7/1.
  */
@@ -22,13 +24,14 @@ public class LiftOff implements Runnable {
     public void run() {
         while (countdown-- > 0){
             System.out.println(status());
-            Thread.yield();
+//            Thread.yield();
+            try {
+                TimeUnit.MILLISECONDS.sleep(100);
+            } catch (InterruptedException e) {
+                System.err.println("Interrupted");
+            }
         }
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+
     }
 
 }
