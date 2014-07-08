@@ -1,7 +1,9 @@
 package concurrency;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
-import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.*;
 
 class Horse implements Runnable {
     private static int counter = 0;
@@ -26,10 +28,12 @@ class Horse implements Runnable {
                 synchronized (this) {
                     strides += rand.nextInt(3);
                 }
-                barrier.wait();
+                barrier.await();
             }
         } catch (InterruptedException e) {
 //            e.printStackTrace();
+        } catch (BrokenBarrierException e) {
+            e.printStackTrace();
         }
     }
 
@@ -48,4 +52,50 @@ class Horse implements Runnable {
 }
 
 public class HorseRace {
+    static final int FINISH_LINE = 75;
+    private List<Horse> horses = new ArrayList<Horse>();
+    private ExecutorService exec = Executors.newCachedThreadPool();
+    private CyclicBarrier barrier;
+
+    public HorseRace(int nHorse, final int pause) {
+        barrier = new CyclicBarrier(nHorse, new Runnable() {
+            @Override
+            public void run() {
+                StringBuilder s = new StringBuilder();
+                for (int i = 0; i < FINISH_LINE; i++) {
+                    s.append("=");
+                }
+                System.out.println(s);
+                for (Horse horse : horses) {
+                    System.out.println(horse.track());
+                }
+
+                for (Horse horse : horses) {
+                    if (horse.getStrides() >= FINISH_LINE) {
+                        System.out.println(horse + "won!");
+                        exec.shutdownNow();
+                        return;
+                    }
+                }
+                try {
+                    TimeUnit.MILLISECONDS.sleep(pause);
+                } catch (InterruptedException e) {
+                    System.out.println("barrier-action sleep interrupted");
+                }
+            }
+        });
+
+        for (int i = 0; i < nHorse; i++) {
+            Horse horse = new Horse(barrier);
+            horses.add(horse);
+            exec.execute(horse);
+        }
+    }
+
+    public static void main(String[] args) {
+        int nHorses = 7;
+        int pause = 200;
+
+        new HorseRace(nHorses, pause);
+    }
 }
